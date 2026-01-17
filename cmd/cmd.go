@@ -174,10 +174,19 @@ func generateTCard(streams IOStreams, contentPath, outPath string, tpl image.Ima
 	}
 
 	var tags []string
-	for _, t := range fm.Tags {
-		tags = append(tags, strings.Title(t))
+	lim := len(fm.Tags)
+	if l := cnf.Tags.Limit; l > 0 && l <= lim {
+		lim = l
 	}
 
+	for _, t := range fm.Tags[:lim] {
+		if *cnf.Tags.TitleCaseEnabled {
+			t = strings.Title(t)
+		}
+		tags = append(tags, t)
+	}
+
+	/* Title */
 	if err := c.DrawTextAtPoint(
 		fm.Title,
 		*cnf.Title.Start,
@@ -188,33 +197,42 @@ func generateTCard(streams IOStreams, contentPath, outPath string, tpl image.Ima
 	); err != nil {
 		return err
 	}
-	if err := c.DrawTextAtPoint(
-		strings.ToUpper(fm.Category),
-		*cnf.Category.Start,
-		canvas.FgHexColor(cnf.Category.FgHexColor),
-		canvas.FontFaceFromFFA(ffa, cnf.Category.FontStyle, cnf.Category.FontSize),
-	); err != nil {
-		return err
+	/* Category */
+	if *cnf.Category.Enabled {
+		if err := c.DrawTextAtPoint(
+			strings.ToUpper(fm.Category),
+			*cnf.Category.Start,
+			canvas.FgHexColor(cnf.Category.FgHexColor),
+			canvas.FontFaceFromFFA(ffa, cnf.Category.FontStyle, cnf.Category.FontSize),
+		); err != nil {
+			return err
+		}
 	}
-	if err := c.DrawTextAtPoint(
-		fmt.Sprintf("%s%s%s", fm.Author, cnf.Info.Separator, fm.Date.Format(cnf.Info.TimeFormat)),
-		*cnf.Info.Start,
-		canvas.FgHexColor(cnf.Info.FgHexColor),
-		canvas.FontFaceFromFFA(ffa, cnf.Info.FontStyle, cnf.Info.FontSize),
-	); err != nil {
-		return err
+	/* Info */
+	if *cnf.Info.Enabled {
+		if err := c.DrawTextAtPoint(
+			fmt.Sprintf("%s%s%s", fm.Author, cnf.Info.Separator, fm.Date.Format(cnf.Info.TimeFormat)),
+			*cnf.Info.Start,
+			canvas.FgHexColor(cnf.Info.FgHexColor),
+			canvas.FontFaceFromFFA(ffa, cnf.Info.FontStyle, cnf.Info.FontSize),
+		); err != nil {
+			return err
+		}
 	}
-	if err := c.DrawBoxTexts(
-		tags,
-		*cnf.Tags.Start,
-		canvas.FgHexColor(cnf.Tags.FgHexColor),
-		canvas.BgHexColor(cnf.Tags.BgHexColor),
-		canvas.BoxPadding(*cnf.Tags.BoxPadding),
-		canvas.BoxSpacing(*cnf.Tags.BoxSpacing),
-		canvas.BoxAlign(cnf.Tags.BoxAlign),
-		canvas.FontFaceFromFFA(ffa, cnf.Tags.FontStyle, cnf.Tags.FontSize),
-	); err != nil {
-		return err
+	/* Tags */
+	if *cnf.Tags.Enabled {
+		if err := c.DrawBoxTexts(
+			tags,
+			*cnf.Tags.Start,
+			canvas.FgHexColor(cnf.Tags.FgHexColor),
+			canvas.BgHexColor(cnf.Tags.BgHexColor),
+			canvas.BoxPadding(*cnf.Tags.BoxPadding),
+			canvas.BoxSpacing(*cnf.Tags.BoxSpacing),
+			canvas.BoxAlign(cnf.Tags.BoxAlign),
+			canvas.FontFaceFromFFA(ffa, cnf.Tags.FontStyle, cnf.Tags.FontSize),
+		); err != nil {
+			return err
+		}
 	}
 
 	return c.SaveAsPNG(outPath)
